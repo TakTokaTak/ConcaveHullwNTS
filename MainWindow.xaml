@@ -6,36 +6,31 @@
         xmlns:local="clr-namespace:ConcaveHullwNTS"
         mc:Ignorable="d"
         Title="Конструктор оболочки точек" Height="550" Width="800" MinHeight="500" MinWidth="800">
-    <!-- Основная сетка окна -->
     <Grid>
-        <!-- Определяем только одну строку, которая будет занимать всё пространство -->
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Основной контент (TabControl) -->
         <TabControl x:Name="MainTabControl" TabStripPlacement="Top">
-            <!-- Первая вкладка: Загрузка и Настройки -->
             <TabItem Header="Загрузка и Настройки">
                 <local:InputSettingsTab x:Name="InputSettingsTabInstance"/>
             </TabItem>
 
-            <!-- Вторая вкладка: Визуализация (пока пустая, заполним позже) -->
-            <TabItem Header="Визуализация">
+            <!-- Визуализация (пока пустая, сделаю позже) -->
+            <TabItem Header="Визуализация" Visibility="Collapsed">
                 <Grid Background="LightGray">
-                    <TextBlock Text="Вкладка визуализации. Здесь будет отображаться результат." 
+                    <TextBlock Text="Вкладка визуализации. Находится в разработке! Здесь будет отображаться результат." 
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Grid>
             </TabItem>
 
-            <!-- Вторая вкладка: Визуализация (пока пустая, заполним позже) -->
             <TabItem Header="О программе">
                 <local:AboutTab VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
             </TabItem>
 
         </TabControl>
 
-        <!-- Статусная строка внизу окна -->
+        <!-- Строка статуса внизу окна -->
         <!-- Используем свойство VerticalAlignment="Bottom", чтобы прикрепить её к низу родительского Grid -->
         <StatusBar VerticalAlignment="Bottom" Background="LightBlue">
             <StatusBarItem>
