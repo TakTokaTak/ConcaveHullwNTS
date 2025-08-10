@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36327.8
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConcaveHullwNTS", "ConcaveHullwNTS.csproj", "{FD2F70E5-9CE5-47D7-999E-C121D9540CE5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FD2F70E5-9CE5-47D7-999E-C121D9540CE5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD2F70E5-9CE5-47D7-999E-C121D9540CE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD2F70E5-9CE5-47D7-999E-C121D9540CE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD2F70E5-9CE5-47D7-999E-C121D9540CE5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CAD80D5B-FEC9-4D75-8EFD-2DC9022AC18C}
+	EndGlobalSection
+EndGlobal
