@@ -1,0 +1,40 @@
+﻿<UserControl x:Class="ConcaveHullwNTS.AboutTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ConcaveHullwNTS"
+             mc:Ignorable="d">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Заголовок -->
+        <TextBlock Grid.Row="0" FontSize="16" FontWeight="Bold" Text="Конструктор оболочки точек" TextWrapping="Wrap"/>
+
+        <!-- Текст справки -->
+        <ScrollViewer Grid.Row="1" Margin="0,5">
+            <TextBlock TextWrapping="Wrap">
+				<Run FontWeight="Bold" Foreground="DarkViolet">О программе</Run><LineBreak/>
+				Программа предназначена для обработки двумерного массива точек для создания внешней оболочки вокруг них.
+				<LineBreak/><LineBreak/>
+				<Run FontWeight="Bold" Foreground="DarkViolet">Порядок действий</Run><LineBreak/>
+				1. Данные должны быть в текстовой форме, в csv или txt файле, в виде двух столбцов чисел.<LineBreak/>
+				2. <Bold>Формат</Bold> и загружаемых, и сохраняемых данных выбирается в области "Настройки формата файла".
+				Если первая строка содержит заголовки, установите галочку <Bold>"Файл с заголовками данных"</Bold>.<LineBreak/>
+                Два столбца разделяются указанным <Bold>разделителем колонок</Bold>. Если указать неверный разделитель, то точки не будут загружены.<LineBreak/>
+				3. После выбора формата нажмите кнопку загрузки. После этого выбираются параметры построения оболочки. При нажатии на кнопку <Bold>"2. Вычислить оболочку"</Bold> данные будут обработаны и получены точки замкнутого контура оболочки. <LineBreak/>
+				4. Перед сохранением вы можете изменить <Bold>формат</Bold> для сохранения – разделитель столбцов, десятичный разделитель чисел.<LineBreak/> После чего можно <Bold>"3. Сохранить результат"</Bold>.
+            </TextBlock>
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="2" FontSize="11" Margin="0,0,0,10">
+		<Run FontWeight="Bold">Версия:</Run> <Run x:Name="txtVersion">1.1</Run>
+		<LineBreak/>
+        (c) Сабинин Е.А.
+        </TextBlock>
+    </Grid>
+</UserControl>

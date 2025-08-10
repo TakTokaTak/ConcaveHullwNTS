@@ -29,16 +29,13 @@
         </GroupBox>
 
         <!-- 2. Настройки формата файла -->
-        <GroupBox Header="Настройки формата файла" Grid.Row="1" Margin="0,0,0,10">
+        <GroupBox Header="Настройки формата файла" Grid.Row="1" Margin="0,0,0,10" ToolTip="Настройки определяют распознавание загруженных данных, а также формат сохранения">
             <StackPanel>
                 <!-- Тип файла -->
                 <StackPanel Orientation="Horizontal" Margin="0,5">
-                    <Label Content="Тип файла:" VerticalAlignment="Center"/>
-                    <RadioButton x:Name="CsvRadioButton" Content="CSV" IsChecked="True" Margin="1,0,0,0" VerticalAlignment="Center"/>
-                    <RadioButton x:Name="TxtRadioButton" Content="TXT" Margin="10,0,30,0" VerticalAlignment="Center"/>
 
                     <!-- Заголовок -->
-                    <CheckBox x:Name="HasHeaderCheckBox" Content="Файл содержит заголовок" Margin="0,5"/>
+                    <CheckBox x:Name="HasHeaderCheckBox" Content="Файл с заголовками данных" Margin="0,5"/>
                 </StackPanel>
 
 
@@ -68,19 +65,20 @@
                 <!-- Тип параметра -->
                 <StackPanel Orientation="Horizontal" Margin="0,5">
                     <Label Content="Тип параметра:" VerticalAlignment="Center"/>
-                    <ComboBox x:Name="ParameterTypeComboBox" Width="200" SelectedIndex="1" SelectionChanged="ParameterTypeComboBox_SelectionChanged">
-                        <ComboBoxItem Content="MaximumEdgeLength"/>
-                        <ComboBoxItem Content="MaximumEdgeLengthRatio"/>
+                    <ComboBox x:Name="ParameterTypeComboBox" Width="320" SelectedIndex="1" SelectionChanged="ParameterTypeComboBox_SelectionChanged" VerticalAlignment="Center" Margin="0,0,20,0">
+                        <ComboBoxItem Content="Максимальная длина ребра" ToolTip="Максимальное ребро не быть длиннее указанного значения"/>
+                        <ComboBoxItem Content="Отношение максимального и минимального рёбер" ToolTip="Определяет максимальную длину ребра как долю от разницы между самой длинным и самым коротким ребром в триангуляции Делоне. Это позволяет нормализовать максимальную длину ребра, чтобы она не зависела от масштаба. При значении 1 получается выпуклая оболочка, при значении 0 — максимальная вогнутость."/>
                         <!-- Alpha скрыт, но оставлен для потенциального расширения -->
                         <!-- <ComboBoxItem Content="Alpha"/> -->
                     </ComboBox>
+                    <!-- Значение параметра -->
+                    <StackPanel Orientation="Horizontal" Margin="0,5" VerticalAlignment="Center">
+                        <Label Content="Значение параметра:" />
+                        <TextBox x:Name="ParameterValueTextBox" Width="100" Text="0.3" TextChanged="ParameterValueTextBox_TextChanged" VerticalContentAlignment="Center"/>
+                    </StackPanel>
                 </StackPanel>
 
-                <!-- Значение параметра -->
-                <StackPanel Orientation="Horizontal" Margin="0,5">
-                    <Label Content="Значение параметра:" VerticalAlignment="Center"/>
-                    <TextBox x:Name="ParameterValueTextBox" Width="100" Text="0.3" TextChanged="ParameterValueTextBox_TextChanged"/>
-                </StackPanel>
+
 
                 <!-- HolesAllowed (временно отключен по уточнению) -->
                 <!--

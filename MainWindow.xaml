@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ConcaveHullwNTS"
         mc:Ignorable="d"
-        Title="Конструктор Вогнутой Оболочки" Height="550" Width="800" MinHeight="500" MinWidth="700">
+        Title="Конструктор оболочки точек" Height="550" Width="800" MinHeight="500" MinWidth="800">
     <!-- Основная сетка окна -->
     <Grid>
         <!-- Определяем только одну строку, которая будет занимать всё пространство -->
@@ -27,13 +27,19 @@
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Grid>
             </TabItem>
+
+            <!-- Вторая вкладка: Визуализация (пока пустая, заполним позже) -->
+            <TabItem Header="О программе">
+                <local:AboutTab VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+            </TabItem>
+
         </TabControl>
 
         <!-- Статусная строка внизу окна -->
         <!-- Используем свойство VerticalAlignment="Bottom", чтобы прикрепить её к низу родительского Grid -->
         <StatusBar VerticalAlignment="Bottom" Background="LightBlue">
             <StatusBarItem>
-                <TextBlock x:Name="StatusBarTextBlock" Text="Готово"/>
+                <TextBlock x:Name="StatusBarTextBlock" Text="Для начала – выберите файл"/>
             </StatusBarItem>
         </StatusBar>
     </Grid>

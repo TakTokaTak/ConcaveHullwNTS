@@ -42,7 +42,7 @@ namespace ConcaveHullwNTS
 		private char _delimiter = ',';
 		private char _decimalSeparator = '.';
 		private CultureInfo _customCulture = CultureInfo.InvariantCulture;
-		private (bool isCsv, bool hasHeader, char delimiter, char decimalSeparator) _loadedFileSettings;
+		private (bool hasHeader, char delimiter, char decimalSeparator, string headerX, string headerY) _loadedFileSettings;
 
 		// Параметры ConcaveHull
 		private bool _useLengthRatio = true; // true для MaximumEdgeLengthRatio, false для MaximumEdgeLength
@@ -61,7 +61,7 @@ namespace ConcaveHullwNTS
 		{
 			var openFileDialog = new Microsoft.Win32.OpenFileDialog
 			{
-				Filter = "CSV files (*.csv)|*.csv|Text files (*.txt)|*.txt|All files (*.*)|*.*"
+				Filter = "CSV or Text files (*.csv, *.txt)|*.csv;*.txt|All files (*.*)|*.*"
 			};
 
 			if (openFileDialog.ShowDialog() == true)
@@ -113,6 +113,14 @@ namespace ConcaveHullwNTS
 
 		private async void LoadPointsButton_Click(object sender, RoutedEventArgs e) // async для потенциальной разгрузки UI
 		{
+			// --- Добавлено: Сброс состояния в самом начале ---
+			// На случай, если это повторная попытка загрузки после ошибки
+			// Флаги сбросятся, если загрузка пройдет успешно
+			_pointsLoaded = false;
+			_hullCalculated = false;
+			_resultHullGeometry = null;
+			UpdateButtonStates(); // Обновляем состояние кнопок сразу
+
 			if (string.IsNullOrEmpty(_filePath) || !File.Exists(_filePath))
 			{
 				StatusUpdated?.Invoke("Ошибка: Файл не выбран или не существует.");
@@ -122,32 +130,34 @@ namespace ConcaveHullwNTS
 			try
 			{
 				GetFileFormatSettings(); // Получаем актуальные настройки из UI
-
-				// Для простоты оставим синхронно, так как файлы, вероятно, не гигантские
-				var coordinates = LoadCoordinatesFromFile(_filePath, _isCsv, _hasHeader, _delimiter, _decimalSeparator);
+				string _headerX = "";
+				string _headerY = "";
+		// Для простоты оставим синхронно, так как файлы, вероятно, не гигантские
+		NtsCoordinate[] coordinates = LoadCoordinatesFromFile(_filePath, _hasHeader, _delimiter, _decimalSeparator, ref _headerX, ref _headerY);
 
 				if (coordinates is { Length: > 0 }) // Используем pattern matching с property pattern
 				{
 					_loadedCoordinates = coordinates;
-					_pointsLoaded = true;
-					_hullCalculated = false;
-					_resultHullGeometry = null;
-					// --- Добавлено: Сохраняем настройки формата файла ---
-					// Эти настройки будут использоваться при сохранении результата
-					_loadedFileSettings = (_isCsv, _hasHeader, _delimiter, _decimalSeparator);
-					// ----------------------------------------------------
-					UpdateButtonStates();
+					_pointsLoaded = true; // Устанавливаем флаг только при успехе
+					_loadedFileSettings = (_hasHeader, _delimiter, _decimalSeparator, _headerX, _headerY);
+					UpdateButtonStates(); // Обновляем состояние кнопок при успехе
 					StatusUpdated?.Invoke($"Успешно загружено {_loadedCoordinates.Length} точек.");
 					InfoTextBlock.Text = $"Загружено {_loadedCoordinates.Length} точек из файла '{System.IO.Path.GetFileName(_filePath)}'.";
 				}
 				else
 				{
+					// обновление UI при "пустом" результате ---
 					StatusUpdated?.Invoke("Ошибка: Не удалось загрузить точки или файл пуст.");
 					InfoTextBlock.Text = "Ошибка при загрузке точек.";
 				}
 			}
 			catch (Exception ex)
 			{
+				// Сброс состояния и обновление UI при исключении ---
+				_pointsLoaded = false;
+				_hullCalculated = false;
+				_resultHullGeometry = null;
+				UpdateButtonStates();
 				StatusUpdated?.Invoke($"Ошибка при загрузке точек: {ex.Message}");
 				InfoTextBlock.Text = $"Ошибка: {ex.Message}";
 			}
@@ -180,10 +190,8 @@ namespace ConcaveHullwNTS
 				var multiPoint = factory.CreateMultiPointFromCoords(_loadedCoordinates);
 
 				// 2. Вычисляем вогнутую оболочку
-				const bool holesAllowed = false; // По уточнению
-
-				// Выполняем вычисление в фоновом потоке
-				NtsGeometry hullGeometry = await Task.Run(() =>
+				const bool holesAllowed = false; // Отверстий пока не будет
+				NtsGeometry hullGeometry = await Task.Run(() => // Выполняем вычисление в фоновом потоке
 				{
 					if (_useLengthRatio)
 					{
@@ -229,22 +237,37 @@ namespace ConcaveHullwNTS
 
 			try
 			{
-				// --- Используем сохраненные настройки формата файла ---
-				var (isCsv, hasHeader, delimiter, decimalSeparator) = _loadedFileSettings;
-				// -------------------------------------------------------
+				GetFileFormatSettings(); // Обновляем поля _hasHeader, _delimiter, _decimalSeparator из UI
+				bool hasHeader = _hasHeader;
+				char delimiter = _delimiter; 
+				char decimalSeparator = _decimalSeparator; 
 
-				var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+				Microsoft.Win32.SaveFileDialog saveFileDialog = new()
 				{
-					Filter = isCsv ? "CSV files (*.csv)|*.csv" : "Text files (*.txt)|*.txt",
-					FileName = System.IO.Path.GetFileNameWithoutExtension(_filePath) + "_hull." + (isCsv ? "csv" : "txt")
+					Filter = "CSV files (*.csv)|*.csv|Text files (*.txt)|*.txt",
+					FileName = System.IO.Path.GetFileNameWithoutExtension(_filePath) + "_Оболочка"
 				};
 
 				if (saveFileDialog.ShowDialog() == true)
 				{
-					// Передаем сохраненные настройки в метод сохранения
-					SavePolygonToFile(polygon, saveFileDialog.FileName, isCsv, delimiter, hasHeader, _filePath, decimalSeparator);
-					StatusUpdated?.Invoke($"Результат успешно сохранен в файл '{saveFileDialog.FileName}'.");
-					InfoTextBlock.Text += $"\nРезультат сохранен в '{saveFileDialog.FileName}'.";
+					// --- Определяем тип файла на основе расширения, введенного/выбранного пользователем ---
+					string selectedExtension = System.IO.Path.GetExtension(saveFileDialog.FileName);
+					bool isCsv = selectedExtension.Equals(".csv", StringComparison.OrdinalIgnoreCase);
+
+					// Убеждаемся, что имя файла заканчивается правильным расширением
+					// (на случай, если пользователь ввел имя без расширения и выбрал фильтр)
+					string finalFileName = saveFileDialog.FileName;
+					if (!finalFileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase) &&
+						!finalFileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+					{
+						// Это маловероятно с заданным Filter, но на всякий случай
+						finalFileName = System.IO.Path.ChangeExtension(finalFileName, isCsv ? ".csv" : ".txt");
+					}
+
+					// Передаем все необходимые настройки в метод сохранения
+					SavePolygonToFile(polygon, finalFileName, isCsv, delimiter, hasHeader, _filePath, decimalSeparator);
+					StatusUpdated?.Invoke($"Результат успешно сохранен в файл '{finalFileName}'.");
+					InfoTextBlock.Text += $"\nРезультат сохранен в '{finalFileName}'.";
 				}
 			}
 			catch (Exception ex)
@@ -260,7 +283,6 @@ namespace ConcaveHullwNTS
 
 		private void GetFileFormatSettings()
 		{
-			_isCsv = CsvRadioButton.IsChecked == true;
 			_hasHeader = HasHeaderCheckBox.IsChecked == true;
 
 			// Используем switch expression для более лаконичного кода (C# 8+)
@@ -281,7 +303,7 @@ namespace ConcaveHullwNTS
 			};
 		}
 
-		private NtsCoordinate[] LoadCoordinatesFromFile(string filePath, bool isCsv, bool hasHeader, char delimiter, char decimalSeparator)
+		private static NtsCoordinate[] LoadCoordinatesFromFile(string filePath, bool hasHeader, char delimiter, char decimalSeparator, ref string headerX, ref string headerY)
 		{
 			var coordinates = new List<NtsCoordinate>();
 			var lines = File.ReadAllLines(filePath);
@@ -291,6 +313,17 @@ namespace ConcaveHullwNTS
 			CultureInfo customCulture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
 			customCulture.NumberFormat.NumberDecimalSeparator = decimalSeparator.ToString();
 			// -------------------------------------------------------------------
+
+			if (hasHeader)
+			{
+				string line = lines[0].Trim();
+				if (!string.IsNullOrEmpty(line))
+				{
+					string[]? parts = line.Split([delimiter], StringSplitOptions.RemoveEmptyEntries);
+					headerX = parts[0];
+					if (parts.Length > 1) headerY = parts[1];
+				}
+			}
 
 			for (int i = startIndex; i < lines.Length; i++)
 			{
@@ -318,25 +351,23 @@ namespace ConcaveHullwNTS
 		{
 			var lines = new List<string>();
 
-			// --- Обработка заголовка ---
 			if (hasHeader)
 			{
-				string header = $"X{delimiter}Y";
+				string header = $"{_loadedFileSettings.headerX}{delimiter}{_loadedFileSettings.headerY}";
 				lines.Add(header);
 			}
-			// --------------------------
 
 			var shell = polygon.Shell;
 			var shellCoordinates = shell.Coordinates;
-
 			// --- Создаем культуру "на лету" для форматирования чисел с нужным десятичным разделителем ---
 			CultureInfo writeCulture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
 			writeCulture.NumberFormat.NumberDecimalSeparator = decimalSeparator.ToString();
-			// -----------------------------------------------------------------------------------------
 
-			// Добавляем координаты внешней границы, форматируя числа с указанным decimalSeparator
 			lines.AddRange(shellCoordinates
 							 .Select(coord => $"{coord.X.ToString(writeCulture)}{delimiter}{coord.Y.ToString(writeCulture)}"));
+
+			// Если бы были дыры:
+			// foreach (var hole in polygon.Holes) { ... }
 
 			File.WriteAllLines(filePath, lines, Encoding.UTF8);
 		}
