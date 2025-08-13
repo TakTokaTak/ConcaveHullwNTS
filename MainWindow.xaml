@@ -16,12 +16,8 @@
                 <local:InputSettingsTab x:Name="InputSettingsTabInstance"/>
             </TabItem>
 
-            <!-- Визуализация (пока пустая, сделаю позже) -->
-            <TabItem Header="Визуализация" Visibility="Collapsed">
-                <Grid Background="LightGray">
-                    <TextBlock Text="Вкладка визуализации. Находится в разработке! Здесь будет отображаться результат." 
-                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                </Grid>
+            <TabItem Header="Визуализация" x:Name="VisualizationTabItem">
+                <local:VisualizationTab x:Name="VisualizationTabInstance"/>
             </TabItem>
 
             <TabItem Header="О программе">

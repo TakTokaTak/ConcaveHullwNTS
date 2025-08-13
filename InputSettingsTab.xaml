@@ -33,9 +33,16 @@
             <StackPanel>
                 <!-- Тип файла -->
                 <StackPanel Orientation="Horizontal" Margin="0,5">
-
                     <!-- Заголовок -->
-                    <CheckBox x:Name="HasHeaderCheckBox" Content="Файл с заголовками данных" Margin="0,5"/>
+                    <CheckBox x:Name="HasHeaderCheckBox" Content="Файл с заголовками данных" Margin="0,5,30,0"/>
+
+                    <!--<Label Content="Кодировка:" VerticalAlignment="Center" ToolTip="Влияет на кодировку текста заголовков"/>
+                    <ComboBox x:Name="EncodingComboBox" Width="150" SelectedIndex="0" Margin="0,0,0,0" ToolTip="Влияет на кодировку текста заголовков">
+                        <ComboBoxItem Content="Автоопределение"/>
+                        <ComboBoxItem Content="UTF-8"/>
+                        <ComboBoxItem Content="Windows-1251"/>
+                    </ComboBox>-->
+
                 </StackPanel>
 
 
@@ -60,14 +67,14 @@
         </GroupBox>
 
         <!-- 3. Настройки Concave Hull -->
-        <GroupBox Header="Параметры вогнутой оболочки" Grid.Row="2" Margin="0,0,0,10">
+        <GroupBox Header="Настройка геометрии оболочки" Grid.Row="2" Margin="0,0,0,10">
             <StackPanel>
                 <!-- Тип параметра -->
                 <StackPanel Orientation="Horizontal" Margin="0,5">
-                    <Label Content="Тип параметра:" VerticalAlignment="Center"/>
-                    <ComboBox x:Name="ParameterTypeComboBox" Width="320" SelectedIndex="1" SelectionChanged="ParameterTypeComboBox_SelectionChanged" VerticalAlignment="Center" Margin="0,0,20,0">
-                        <ComboBoxItem Content="Максимальная длина ребра" ToolTip="Максимальное ребро не быть длиннее указанного значения"/>
-                        <ComboBoxItem Content="Отношение максимального и минимального рёбер" ToolTip="Определяет максимальную длину ребра как долю от разницы между самой длинным и самым коротким ребром в триангуляции Делоне. Это позволяет нормализовать максимальную длину ребра, чтобы она не зависела от масштаба. При значении 1 получается выпуклая оболочка, при значении 0 — максимальная вогнутость."/>
+                    <Label Content="Параметр для построения" VerticalAlignment="Center" ToolTip="Определяет характерные размеры рёбер"/>
+                    <ComboBox x:Name="ParameterTypeComboBox" Width="280" SelectedIndex="1" SelectionChanged="ParameterTypeComboBox_SelectionChanged" VerticalAlignment="Center" Margin="0,0,20,0" >
+                        <ComboBoxItem Content="Максимальная длина ребра" ToolTip="Чем больше, тем более выпукла оболочка"/>
+                        <ComboBoxItem Content="Коэффициент максимального ребра" ToolTip="Определяет максимальную длину ребра как долю от разницы между самыми длинным и коротким ребром в триангуляции Делоне. При значении 1 получается выпуклая оболочка, при значении 0 — максимальная &quot;вогнутость&quot;."/>
                         <!-- Alpha скрыт, но оставлен для потенциального расширения -->
                         <!-- <ComboBoxItem Content="Alpha"/> -->
                     </ComboBox>

@@ -39,8 +39,9 @@ namespace ConcaveHullwNTS
 		private string _filePath = "";
 		private bool _isCsv = true;
 		private bool _hasHeader = false;
-		private char _delimiter = ',';
-		private char _decimalSeparator = '.';
+		private char _delimiter = ';';
+		private char _decimalSeparator = ',';
+		private Encoding _fileEncoding = Encoding.UTF8;
 		private CultureInfo _customCulture = CultureInfo.InvariantCulture;
 		private (bool hasHeader, char delimiter, char decimalSeparator, string headerX, string headerY) _loadedFileSettings;
 
@@ -132,8 +133,8 @@ namespace ConcaveHullwNTS
 				GetFileFormatSettings(); // Получаем актуальные настройки из UI
 				string _headerX = "";
 				string _headerY = "";
-		// Для простоты оставим синхронно, так как файлы, вероятно, не гигантские
-		NtsCoordinate[] coordinates = LoadCoordinatesFromFile(_filePath, _hasHeader, _delimiter, _decimalSeparator, ref _headerX, ref _headerY);
+				// Для простоты оставим синхронно, так как файлы, вероятно, не гигантские
+				NtsCoordinate[] coordinates = LoadCoordinatesFromFile(_filePath, _hasHeader, _delimiter, _decimalSeparator, _fileEncoding, ref _headerX, ref _headerY);
 
 				if (coordinates is { Length: > 0 }) // Используем pattern matching с property pattern
 				{
@@ -303,10 +304,28 @@ namespace ConcaveHullwNTS
 			};
 		}
 
-		private static NtsCoordinate[] LoadCoordinatesFromFile(string filePath, bool hasHeader, char delimiter, char decimalSeparator, ref string headerX, ref string headerY)
+		private NtsCoordinate[] LoadCoordinatesFromFile(string filePath, bool hasHeader, char delimiter, char decimalSeparator, Encoding encoding, ref string headerX, ref string headerY)
 		{
 			var coordinates = new List<NtsCoordinate>();
-			var lines = File.ReadAllLines(filePath);
+
+			Encoding finalEncoding = encoding;
+			// Автоопределения кодировки, нужно только для заголовка
+			if (hasHeader)
+			{
+				try
+				{
+					finalEncoding = DetectFileEncoding(filePath); // Попытка автоопределения																  
+					InfoTextBlock.Text += $"\nАвтоопределена кодировка: {finalEncoding.EncodingName}"; // Можно вывести в InfoTextBlock информацию о выбранной кодировке
+				}
+				catch (Exception ex)
+				{
+					// Если автоопределение не удалось, используем UTF-8
+					finalEncoding = Encoding.UTF8;
+					InfoTextBlock.Text += $"\nНе удалось определить кодировку, пусть будет UTF-8. Ошибка: {ex.Message}";
+				}
+			}
+
+			var lines = File.ReadAllLines(filePath, finalEncoding);
 			int startIndex = hasHeader ? 1 : 0;
 
 			// --- Создаем культуру "на лету" с нужным десятичным разделителем ---
@@ -333,19 +352,63 @@ namespace ConcaveHullwNTS
 				var parts = line.Split(new char[] { delimiter }, StringSplitOptions.RemoveEmptyEntries);
 				if (parts.Length >= 2)
 				{
-					// --- Используем созданную культуру customCulture ---
 					if (double.TryParse(parts[0].Trim(), NumberStyles.Float, customCulture, out double x) &&
 						double.TryParse(parts[1].Trim(), NumberStyles.Float, customCulture, out double y))
 					{
 						coordinates.Add(new NtsCoordinate(x, y));
 					}
-					// else: логируем ошибку парсинга или пропускаем
-					// ---
+					else InfoTextBlock.Text += $"Нераспознанные данные: в {i+1} строке: {line}";
 				}
 			}
 
 			return [.. coordinates]; // Collection Expression для преобразования List в массив
 		}
+
+
+		/// <summary>
+		/// Определяет кодировку текстового файла только по BOM (Byte Order Mark) в его начале.
+		/// Если BOM не найден, возвращается наиболее вероятная кодировка по умолчанию (Windows-1251).
+		/// </summary>
+		/// <param name="filePath">Путь к файлу.</param>
+		/// <returns>Объект Encoding, представляющий определенную кодировку или Windows-1251 по умолчанию.</returns>
+		private static Encoding DetectFileEncoding(string filePath)
+		{
+			using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+			{
+				byte[] bom = new byte[4];
+				int bytesRead = fs.Read(bom, 0, bom.Length);
+
+				// UTF-32 BE
+				if (bytesRead >= 4 && bom[0] == 0x00 && bom[1] == 0x00 && bom[2] == 0xFE && bom[3] == 0xFF)
+				{
+					return Encoding.GetEncoding("utf-32BE");
+				}
+				// UTF-32 LE
+				if (bytesRead >= 4 && bom[0] == 0xFF && bom[1] == 0xFE && bom[2] == 0x00 && bom[3] == 0x00)
+				{
+					return Encoding.UTF32;
+				}
+				// UTF-8
+				if (bytesRead >= 3 && bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF)
+				{
+					return Encoding.UTF8;
+				}
+				// UTF-16 BE
+				if (bytesRead >= 2 && bom[0] == 0xFE && bom[1] == 0xFF)
+				{
+					return Encoding.BigEndianUnicode;
+				}
+				// UTF-16 LE
+				if (bytesRead >= 2 && bom[0] == 0xFF && bom[1] == 0xFE)
+				{
+					return Encoding.Unicode;
+				}
+			}
+
+			// Возвращаем Windows-1251
+			return Encoding.GetEncoding(1251);
+		}
+
 
 		private void SavePolygonToFile(NtsPolygon polygon, string filePath, bool isCsv, char delimiter, bool hasHeader, string sourceFileName, char decimalSeparator)
 		{
@@ -369,7 +432,7 @@ namespace ConcaveHullwNTS
 			// Если бы были дыры:
 			// foreach (var hole in polygon.Holes) { ... }
 
-			File.WriteAllLines(filePath, lines, Encoding.UTF8);
+			File.WriteAllLines(filePath, lines, new UTF8Encoding(true)); // Всегда сохраняем в UTF-8 с BOM
 		}
 
 		private void UpdateButtonStates()
@@ -378,6 +441,14 @@ namespace ConcaveHullwNTS
 			LoadPointsButton.IsEnabled = isFileSelected;
 			CalculateHullButton.IsEnabled = _pointsLoaded;
 			SaveResultButton.IsEnabled = _hullCalculated && _resultHullGeometry != null;
+		}
+
+		public void TriggerSave()
+		{
+			// Этот метод будет вызываться из MainWindow при нажатии кнопки сохранения на вкладке визуализации
+			// Он просто вызывает существующий обработчик, имитируя клик пользователя
+			// Это позволяет переиспользовать всю логику проверок и сохранения
+			SaveResultButton_Click(SaveResultButton, new RoutedEventArgs());
 		}
 
 		#endregion

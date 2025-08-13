@@ -1,4 +1,6 @@
 ﻿using NetTopologySuite.Geometries;
+using System.Diagnostics;
+using System.Text;
 using System.Windows;
 
 namespace ConcaveHullwNTS
@@ -10,11 +12,42 @@ namespace ConcaveHullwNTS
 	{
 		public MainWindow()
 		{
+			Debug.AutoFlush = true;
+			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); //Надо добавлять перед инициализацией
 			InitializeComponent();
+
+			//// -- Тестовые данные -- 
+			//Loaded += (s, e) =>
+			//{
+			//	Coordinate[] points = new[]
+			//	{
+			//		new Coordinate(0, 0),
+			//		new Coordinate(50, 0),
+			//		new Coordinate(25, 25),
+			//		new Coordinate(50, 50),
+			//		new Coordinate(0, 50),
+			//		new Coordinate(0, 0)
+			//	};
+			//	GeometryFactory factory = new GeometryFactory();
+			//	Polygon hull = factory.CreatePolygon(points);
+
+			//	VisualizationTabInstance.SetData(hull, points);
+			//};
+			//// ---- 
+
 			// Null-forgiving operator (!) используется, так как мы уверены, что элемент существует в XAML
-			InputSettingsTabInstance!.StatusUpdated += OnStatusUpdated;
-			InputSettingsTabInstance!.InfoUpdated += OnInfoUpdated;
-			InputSettingsTabInstance!.HullCalculated += OnHullCalculated;
+			if (InputSettingsTabInstance != null)
+			{
+				InputSettingsTabInstance.StatusUpdated += OnStatusUpdated;
+				// Подписываемся на HullCalculated
+				InputSettingsTabInstance.HullCalculated += OnHullCalculated;
+			}
+
+			// Подписываемся на SaveRequested от VisualizationTab
+			if (VisualizationTabInstance != null)
+			{
+				VisualizationTabInstance.SaveRequested += OnVisualizationSaveRequested;
+			}
 		}
 
 		#region Обработчики событий от InputSettingsTab
@@ -25,31 +58,31 @@ namespace ConcaveHullwNTS
 			StatusBarTextBlock!.Text = message;
 		}
 
-		private void OnInfoUpdated(string message)
-		{
-			// Обработка в InputSettingsTab
-		}
 
 		private void OnHullCalculated(Geometry hullGeometry, Coordinate[] originalPoints)
 		{
-			// Логика, которая должна выполниться, когда оболочка вычислена
-			// Например, автоматически переключить вкладку на "Визуализация"
-			// и передать данные в элемент управления визуализацией (который мы создадим позже)
+			VisualizationTabInstance.SetData(hullGeometry, originalPoints);
+		}
 
-			// Пока просто покажем сообщение
-			// MessageBox.Show("Оболочка вычислена! Переключитесь на вкладку 'Визуализация'.", "Готово", MessageBoxButton.OK, MessageBoxImage.Information);
+		#endregion
 
-			// TODO: Здесь будет логика для передачи данных в VisualizationTab
-			// Например, если у VisualizationTab будет метод SetData(Geometry hull, Coordinate[] points)
-			// var visualizationTab = MainTabControl.Items[1] as VisualizationTab; // Предполагая, что это UserControl
-			// visualizationTab?.SetData(hullGeometry, originalPoints);
+		#region Обработчики событий от VisualizationTab
+
+		private void OnVisualizationSaveRequested()
+		{
+			// Когда пользователь нажимает "Сохранить результат" на вкладке визуализации,
+			// мы вызываем метод сохранения из InputSettingsTab
+			if (InputSettingsTabInstance != null)
+			{
+				InputSettingsTabInstance.TriggerSave(); // TriggerSave() расположен в InputSettingsTab.xaml.cs
+			}
 		}
 
 		#endregion
 
 		#region Логика MainWindow (если потребуется)
 
-		// Дополнительные методы и логика MainWindow могут быть добавлены здесь
+		// Дополнительные методы и логика MainWindow
 
 		#endregion
 	}
