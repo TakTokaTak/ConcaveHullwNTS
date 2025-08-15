@@ -16,31 +16,13 @@ namespace ConcaveHullwNTS
 			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); //Надо добавлять перед инициализацией
 			InitializeComponent();
 
-			//// -- Тестовые данные -- 
-			//Loaded += (s, e) =>
-			//{
-			//	Coordinate[] points = new[]
-			//	{
-			//		new Coordinate(0, 0),
-			//		new Coordinate(50, 0),
-			//		new Coordinate(25, 25),
-			//		new Coordinate(50, 50),
-			//		new Coordinate(0, 50),
-			//		new Coordinate(0, 0)
-			//	};
-			//	GeometryFactory factory = new GeometryFactory();
-			//	Polygon hull = factory.CreatePolygon(points);
-
-			//	VisualizationTabInstance.SetData(hull, points);
-			//};
-			//// ---- 
-
 			// Null-forgiving operator (!) используется, так как мы уверены, что элемент существует в XAML
 			if (InputSettingsTabInstance != null)
 			{
 				InputSettingsTabInstance.StatusUpdated += OnStatusUpdated;
 				// Подписываемся на HullCalculated
 				InputSettingsTabInstance.HullCalculated += OnHullCalculated;
+				InputSettingsTabInstance.PointsLoaded += OnPointsLoaded;
 			}
 
 			// Подписываемся на SaveRequested от VisualizationTab
@@ -62,6 +44,14 @@ namespace ConcaveHullwNTS
 		private void OnHullCalculated(Geometry hullGeometry, Coordinate[] originalPoints)
 		{
 			VisualizationTabInstance.SetData(hullGeometry, originalPoints);
+		}
+
+		private void OnPointsLoaded(Coordinate[] points)
+		{
+			// Вызывается после успешной загрузки точек в InputSettingsTab
+			// Передаем точки в VisualizationTab, оболочку устанавливаем в null
+			// Это приведет к отрисовке только точек (очистке оболочки, если она была)
+			VisualizationTabInstance?.SetData(null, points);
 		}
 
 		#endregion

@@ -1,12 +1,6 @@
 ﻿// Добавим using alias для часто используемых типов NTS
-using NtsConcaveHull = NetTopologySuite.Algorithm.Hull.ConcaveHull;
-using NtsGeometryFactory = NetTopologySuite.Geometries.GeometryFactory;
-using NtsCoordinate = NetTopologySuite.Geometries.Coordinate;
-using NtsGeometry = NetTopologySuite.Geometries.Geometry;
-using NtsPolygon = NetTopologySuite.Geometries.Polygon;
-using NtsLinearRing = NetTopologySuite.Geometries.LinearRing;
-
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -14,6 +8,12 @@ using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using NtsConcaveHull = NetTopologySuite.Algorithm.Hull.ConcaveHull;
+using NtsCoordinate = NetTopologySuite.Geometries.Coordinate;
+using NtsGeometry = NetTopologySuite.Geometries.Geometry;
+using NtsGeometryFactory = NetTopologySuite.Geometries.GeometryFactory;
+using NtsLinearRing = NetTopologySuite.Geometries.LinearRing;
+using NtsPolygon = NetTopologySuite.Geometries.Polygon;
 
 namespace ConcaveHullwNTS
 {
@@ -26,6 +26,7 @@ namespace ConcaveHullwNTS
 		public event Action<string>? StatusUpdated;
 		public event Action<string>? InfoUpdated;
 		public event Action<NtsGeometry, NtsCoordinate[]>? HullCalculated; // Используем alias
+		public event Action<NtsCoordinate[]>? PointsLoaded;
 
 		// Хранилище для загруженных точек и результата
 		private NtsCoordinate[]? _loadedCoordinates;
@@ -114,7 +115,7 @@ namespace ConcaveHullwNTS
 
 		private async void LoadPointsButton_Click(object sender, RoutedEventArgs e) // async для потенциальной разгрузки UI
 		{
-			// --- Добавлено: Сброс состояния в самом начале ---
+			// Сброс состояния в самом начале ---
 			// На случай, если это повторная попытка загрузки после ошибки
 			// Флаги сбросятся, если загрузка пройдет успешно
 			_pointsLoaded = false;
@@ -144,17 +145,18 @@ namespace ConcaveHullwNTS
 					UpdateButtonStates(); // Обновляем состояние кнопок при успехе
 					StatusUpdated?.Invoke($"Успешно загружено {_loadedCoordinates.Length} точек.");
 					InfoTextBlock.Text = $"Загружено {_loadedCoordinates.Length} точек из файла '{System.IO.Path.GetFileName(_filePath)}'.";
+					PointsLoaded?.Invoke(_loadedCoordinates); // Уведомляем MainWindow о загрузке точек 
 				}
 				else
 				{
-					// обновление UI при "пустом" результате ---
+					// обновление UI при "пустом" результате
 					StatusUpdated?.Invoke("Ошибка: Не удалось загрузить точки или файл пуст.");
 					InfoTextBlock.Text = "Ошибка при загрузке точек.";
 				}
 			}
 			catch (Exception ex)
 			{
-				// Сброс состояния и обновление UI при исключении ---
+				// Сброс состояния и обновление UI при исключении
 				_pointsLoaded = false;
 				_hullCalculated = false;
 				_resultHullGeometry = null;
@@ -360,7 +362,6 @@ namespace ConcaveHullwNTS
 					else InfoTextBlock.Text += $"Нераспознанные данные: в {i+1} строке: {line}";
 				}
 			}
-
 			return [.. coordinates]; // Collection Expression для преобразования List в массив
 		}
 

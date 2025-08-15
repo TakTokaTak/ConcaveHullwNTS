@@ -17,9 +17,9 @@ namespace ConcaveHullwNTS
 	{
 		private NtsCoordinate[]? _originalPoints;
 		private NtsGeometry? _hullGeometry;
-		private Rect _dataBounds = new Rect(0, 0, 100, 100);
-
+		private Rect _dataBounds = new(0, 0, 100, 100);
 		public event Action? SaveRequested;
+		private bool _isVisualizationDirty = true; // true означает, что данные изменились или размер изменился, и визуализацию нужно обновить. Изначально true, чтобы гарантировать первую отрисовку
 
 		public VisualizationTab()
 		{
@@ -35,18 +35,29 @@ namespace ConcaveHullwNTS
 
 		private void OnCanvasSizeChanged(object sender, SizeChangedEventArgs e)
 		{
-			UpdateVisualization();
+			if (e.PreviousSize != e.NewSize)
+			{
+				_isVisualizationDirty = true;
+				UpdateVisualization(); // Попытка обновить
+			}
 		}
 
 		public void SetData(NtsGeometry? hullGeometry, NtsCoordinate[]? originalPoints)
 		{
 			_hullGeometry = hullGeometry;
 			_originalPoints = originalPoints;
+			_isVisualizationDirty = true;
 			UpdateVisualization();
 		}
 
 		private void UpdateVisualization()
 		{
+			if (!_isVisualizationDirty)
+			{
+				System.Diagnostics.Debug.WriteLine("UpdateVisualization: пропущен (не нужно перерисовывать)");
+				return;
+			}
+
 			MainCanvas.Children.Clear();
 
 			if (!HasData())
@@ -62,11 +73,13 @@ namespace ConcaveHullwNTS
 				Canvas.SetLeft(rect, 10);
 				Canvas.SetTop(rect, 10);
 				MainCanvas.Children.Add(rect);
+				_isVisualizationDirty = false;
 				return;
 			}
-
 			CalculateDataBounds();
 			DrawAllElements();
+			_isVisualizationDirty = false;
+			System.Diagnostics.Debug.WriteLine("UpdateVisualization: Готово, флаг стал false");
 		}
 
 		private void CalculateDataBounds()
@@ -120,13 +133,7 @@ namespace ConcaveHullwNTS
 
 		private void DrawAllElements()
 		{
-			// Сначала рисуем оболочку
-			if (_hullGeometry is NtsPolygon polygon)
-			{
-				DrawPolygon(polygon);
-			}
-
-			// Затем точки поверх оболочки
+			// Рисуем точки
 			if (_originalPoints != null)
 			{
 				foreach (var point in _originalPoints)
@@ -134,23 +141,28 @@ namespace ConcaveHullwNTS
 					DrawPoint(point);
 				}
 			}
+
+			// Рисуем оболочку
+			if (_hullGeometry is NtsPolygon polygon)
+			{
+				DrawPolygon(polygon);
+			}
 		}
 
 		private void DrawPoint(NtsCoordinate point)
 		{
-			// Явное указание System.Windows.Point
 			System.Windows.Point canvasPoint = WorldToCanvas(point);
 
 			Ellipse ellipse = new Ellipse
 			{
-				Width = 6,
-				Height = 6,
+				Width = 3,
+				Height = 3,
 				Fill = Brushes.Blue,
 				ToolTip = $"X: {point.X:F2}\nY: {point.Y:F2}"
 			};
 
-			Canvas.SetLeft(ellipse, canvasPoint.X - 3);
-			Canvas.SetTop(ellipse, canvasPoint.Y - 3);
+			Canvas.SetLeft(ellipse, canvasPoint.X - ellipse.Width / 2);
+			Canvas.SetTop(ellipse, canvasPoint.Y - ellipse.Height / 2);
 			MainCanvas.Children.Add(ellipse);
 		}
 
@@ -161,7 +173,6 @@ namespace ConcaveHullwNTS
 				return;
 
 			PathGeometry geometry = new PathGeometry();
-			// Явное указание System.Windows.Point
 			PathFigure figure = new PathFigure
 			{
 				IsClosed = true,
@@ -170,7 +181,6 @@ namespace ConcaveHullwNTS
 
 			for (int i = 1; i < shell.Coordinates.Length; i++)
 			{
-				// Явное указание System.Windows.Media.LineSegment
 				figure.Segments.Add(new System.Windows.Media.LineSegment(WorldToCanvas(shell.Coordinates[i]), true));
 			}
 
@@ -186,7 +196,6 @@ namespace ConcaveHullwNTS
 			MainCanvas.Children.Add(path);
 		}
 
-		// Явное указание System.Windows.Point
 		private System.Windows.Point WorldToCanvas(NtsCoordinate worldPoint)
 		{
 			if (_dataBounds.IsEmpty)
@@ -195,7 +204,7 @@ namespace ConcaveHullwNTS
 			double canvasWidth = MainCanvas.ActualWidth;
 			double canvasHeight = MainCanvas.ActualHeight;
 
-			// Если размеры канваса неизвестны, используем минимальные значения
+			// Если размеры полотна неизвестны, используем минимальные значения
 			if (canvasWidth <= 0) canvasWidth = 100;
 			if (canvasHeight <= 0) canvasHeight = 100;
 
