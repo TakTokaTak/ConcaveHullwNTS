@@ -15,17 +15,13 @@ namespace ConcaveHullwNTS
 			Debug.AutoFlush = true;
 			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); //Надо добавлять перед инициализацией
 			InitializeComponent();
-
-			// Null-forgiving operator (!) используется, так как мы уверены, что элемент существует в XAML
 			if (InputSettingsTabInstance != null)
 			{
 				InputSettingsTabInstance.StatusUpdated += OnStatusUpdated;
-				// Подписываемся на HullCalculated
 				InputSettingsTabInstance.HullCalculated += OnHullCalculated;
 				InputSettingsTabInstance.PointsLoaded += OnPointsLoaded;
 			}
 
-			// Подписываемся на SaveRequested от VisualizationTab
 			if (VisualizationTabInstance != null)
 			{
 				VisualizationTabInstance.SaveRequested += OnVisualizationSaveRequested;
@@ -62,17 +58,12 @@ namespace ConcaveHullwNTS
 		{
 			// Когда пользователь нажимает "Сохранить результат" на вкладке визуализации,
 			// мы вызываем метод сохранения из InputSettingsTab
-			if (InputSettingsTabInstance != null)
-			{
-				InputSettingsTabInstance.TriggerSave(); // TriggerSave() расположен в InputSettingsTab.xaml.cs
-			}
+			InputSettingsTabInstance?.TriggerSave(); // TriggerSave() расположен в InputSettingsTab.xaml.cs
 		}
 
 		#endregion
 
 		#region Логика MainWindow (если потребуется)
-
-		// Дополнительные методы и логика MainWindow
 
 		#endregion
 	}

@@ -8,6 +8,8 @@ using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.TextFormatting;
+using System.Xml;
 using NtsConcaveHull = NetTopologySuite.Algorithm.Hull.ConcaveHull;
 using NtsCoordinate = NetTopologySuite.Geometries.Coordinate;
 using NtsGeometry = NetTopologySuite.Geometries.Geometry;
@@ -24,7 +26,6 @@ namespace ConcaveHullwNTS
 	{
 		// Делегаты и события для коммуникации с MainWindow
 		public event Action<string>? StatusUpdated;
-		public event Action<string>? InfoUpdated;
 		public event Action<NtsGeometry, NtsCoordinate[]>? HullCalculated; // Используем alias
 		public event Action<NtsCoordinate[]>? PointsLoaded;
 
@@ -38,12 +39,10 @@ namespace ConcaveHullwNTS
 
 		// Настройки файла
 		private string _filePath = "";
-		private bool _isCsv = true;
 		private bool _hasHeader = false;
 		private char _delimiter = ';';
 		private char _decimalSeparator = ',';
 		private Encoding _fileEncoding = Encoding.UTF8;
-		private CultureInfo _customCulture = CultureInfo.InvariantCulture;
 		private (bool hasHeader, char delimiter, char decimalSeparator, string headerX, string headerY) _loadedFileSettings;
 
 		// Параметры ConcaveHull
@@ -79,11 +78,11 @@ namespace ConcaveHullwNTS
 		{
 			if (ParameterTypeComboBox == null || ParameterValueTextBox == null)
 			{
-				return;	// Элементы ещё не инициализированы, выходим
+				return; // Элементы ещё не инициализированы, выходим
 			}
 
 			// Используем pattern matching и nameof для безопасности типов
-			if (ParameterTypeComboBox.SelectedItem is ComboBoxItem item)
+			if (ParameterTypeComboBox.SelectedItem is ComboBoxItem)
 			{
 				// Предполагается, что MaximumEdgeLengthRatio это второй элемент (индекс 1)
 				// и MaximumEdgeLength это первый (индекс 0)
@@ -92,8 +91,8 @@ namespace ConcaveHullwNTS
 
 				if (_useLengthRatio)
 				{
-					ParameterValueTextBox.Text = "0.3";
-					_parameterValue = 0.3;
+					ParameterValueTextBox.Text = "";
+					_parameterValue = double.NaN;
 				}
 				else // MaximumEdgeLength
 				{
@@ -106,14 +105,36 @@ namespace ConcaveHullwNTS
 
 		private void ParameterValueTextBox_TextChanged(object sender, TextChangedEventArgs e)
 		{
-			if (double.TryParse(ParameterValueTextBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+			if (sender is TextBox textBox)
 			{
-				_parameterValue = value;
+				string text = textBox.Text;
+
+				// Разрешаем пустую строку или только знак минуса
+				if (string.IsNullOrEmpty(text) || text == "-")
+				{
+					_parameterValue = double.NaN; // Или другое значение по умолчанию, если нужно
+												  // Сбрасываем цвет фона при промежуточном вводе
+					textBox.Background = System.Windows.Media.Brushes.White;
+					return;
+				}
+
+				// Пытаемся распознать число с учетом текущей культуры
+				// Используем NumberStyles.Float для согласованности и строгости
+				if (double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out double value))
+				{
+					_parameterValue = value;
+					// Визуальная обратная связь: корректный ввод
+					textBox.Background = System.Windows.Media.Brushes.White;
+				}
+				else
+				{
+					// Визуальная обратная связь: некорректный ввод
+					textBox.Background = System.Windows.Media.Brushes.LightCoral;
+				}
 			}
-			// else: оставляем предыдущее значение или NaN, валидация будет при нажатии кнопки
 		}
 
-		private async void LoadPointsButton_Click(object sender, RoutedEventArgs e) // async для потенциальной разгрузки UI
+		private void LoadPointsButton_Click(object sender, RoutedEventArgs e) // async для потенциальной разгрузки UI
 		{
 			// Сброс состояния в самом начале ---
 			// На случай, если это повторная попытка загрузки после ошибки
@@ -144,14 +165,14 @@ namespace ConcaveHullwNTS
 					_loadedFileSettings = (_hasHeader, _delimiter, _decimalSeparator, _headerX, _headerY);
 					UpdateButtonStates(); // Обновляем состояние кнопок при успехе
 					StatusUpdated?.Invoke($"Успешно загружено {_loadedCoordinates.Length} точек.");
-					InfoTextBlock.Text = $"Загружено {_loadedCoordinates.Length} точек из файла '{System.IO.Path.GetFileName(_filePath)}'.";
+					InfoTextBlock.Text = InfoTextBlock.Text + $"\nЗагружено {_loadedCoordinates.Length} точек из файла '{System.IO.Path.GetFileName(_filePath)}'.";
 					PointsLoaded?.Invoke(_loadedCoordinates); // Уведомляем MainWindow о загрузке точек 
 				}
 				else
 				{
 					// обновление UI при "пустом" результате
 					StatusUpdated?.Invoke("Ошибка: Не удалось загрузить точки или файл пуст.");
-					InfoTextBlock.Text = "Ошибка при загрузке точек.";
+					InfoTextBlock.Text = InfoTextBlock.Text + $"\nОшибка при загрузке точек.";
 				}
 			}
 			catch (Exception ex)
@@ -268,7 +289,7 @@ namespace ConcaveHullwNTS
 					}
 
 					// Передаем все необходимые настройки в метод сохранения
-					SavePolygonToFile(polygon, finalFileName, isCsv, delimiter, hasHeader, _filePath, decimalSeparator);
+					SavePolygonToFile(polygon, finalFileName, delimiter, hasHeader, decimalSeparator);
 					StatusUpdated?.Invoke($"Результат успешно сохранен в файл '{finalFileName}'.");
 					InfoTextBlock.Text += $"\nРезультат сохранен в '{finalFileName}'.";
 				}
@@ -283,6 +304,7 @@ namespace ConcaveHullwNTS
 		#endregion
 
 		#region Вспомогательные методы
+
 
 		private void GetFileFormatSettings()
 		{
@@ -310,6 +332,12 @@ namespace ConcaveHullwNTS
 		{
 			var coordinates = new List<NtsCoordinate>();
 
+			if (delimiter == decimalSeparator)
+			{
+				InfoTextBlock.Text += $"\nРазделитель столбцов не должен совпадать с десятичным разделителем. Такое не обрабатываем";
+				return [];
+			}
+
 			Encoding finalEncoding = encoding;
 			// Автоопределения кодировки, нужно только для заголовка
 			if (hasHeader)
@@ -330,10 +358,9 @@ namespace ConcaveHullwNTS
 			var lines = File.ReadAllLines(filePath, finalEncoding);
 			int startIndex = hasHeader ? 1 : 0;
 
-			// --- Создаем культуру "на лету" с нужным десятичным разделителем ---
+			// Создаем культуру "на лету" с нужным десятичным разделителем 
 			CultureInfo customCulture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
 			customCulture.NumberFormat.NumberDecimalSeparator = decimalSeparator.ToString();
-			// -------------------------------------------------------------------
 
 			if (hasHeader)
 			{
@@ -351,7 +378,7 @@ namespace ConcaveHullwNTS
 				var line = lines[i].Trim();
 				if (string.IsNullOrEmpty(line)) continue;
 
-				var parts = line.Split(new char[] { delimiter }, StringSplitOptions.RemoveEmptyEntries);
+				var parts = line.Split([delimiter], StringSplitOptions.RemoveEmptyEntries);
 				if (parts.Length >= 2)
 				{
 					if (double.TryParse(parts[0].Trim(), NumberStyles.Float, customCulture, out double x) &&
@@ -359,7 +386,7 @@ namespace ConcaveHullwNTS
 					{
 						coordinates.Add(new NtsCoordinate(x, y));
 					}
-					else InfoTextBlock.Text += $"Нераспознанные данные: в {i+1} строке: {line}";
+					else InfoTextBlock.Text += $"\nНераспознанные данные: в {i+1} строке:  {line}";
 				}
 			}
 			return [.. coordinates]; // Collection Expression для преобразования List в массив
@@ -368,50 +395,97 @@ namespace ConcaveHullwNTS
 
 		/// <summary>
 		/// Определяет кодировку текстового файла только по BOM (Byte Order Mark) в его начале.
-		/// Если BOM не найден, возвращается наиболее вероятная кодировка по умолчанию (Windows-1251).
+		/// Если BOM не найден, проверяем UTF-8 без BOM по первой строке. Если не UTF-8, то возвращается кодировка Windows-1251.
 		/// </summary>
 		/// <param name="filePath">Путь к файлу.</param>
 		/// <returns>Объект Encoding, представляющий определенную кодировку или Windows-1251 по умолчанию.</returns>
 		private static Encoding DetectFileEncoding(string filePath)
 		{
+			// 1. Сначала проверяем BOM
 			using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
 			{
 				byte[] bom = new byte[4];
 				int bytesRead = fs.Read(bom, 0, bom.Length);
 
-				// UTF-32 BE
+				// Проверка известных BOM
 				if (bytesRead >= 4 && bom[0] == 0x00 && bom[1] == 0x00 && bom[2] == 0xFE && bom[3] == 0xFF)
-				{
 					return Encoding.GetEncoding("utf-32BE");
-				}
-				// UTF-32 LE
+
 				if (bytesRead >= 4 && bom[0] == 0xFF && bom[1] == 0xFE && bom[2] == 0x00 && bom[3] == 0x00)
-				{
 					return Encoding.UTF32;
-				}
-				// UTF-8
+
 				if (bytesRead >= 3 && bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF)
+					return Encoding.UTF8;
+
+				if (bytesRead >= 2 && bom[0] == 0xFE && bom[1] == 0xFF)
+					return Encoding.BigEndianUnicode;
+
+				if (bytesRead >= 2 && bom[0] == 0xFF && bom[1] == 0xFE)
+					return Encoding.Unicode;
+
+				// 2. Если BOM не найден, проверяем UTF-8 без BOM по первой строке
+				fs.Position = 0; // Возвращаемся в начало файла
+
+				// Читаем первые 4096 байт (достаточно для анализа первой строки)
+				byte[] buffer = new byte[4096];
+				int readBytes = fs.Read(buffer, 0, buffer.Length);
+
+				// Проверяем, является ли содержимое валидным UTF-8
+				if (IsValidUtf8(buffer, readBytes))
 				{
 					return Encoding.UTF8;
 				}
-				// UTF-16 BE
-				if (bytesRead >= 2 && bom[0] == 0xFE && bom[1] == 0xFF)
-				{
-					return Encoding.BigEndianUnicode;
-				}
-				// UTF-16 LE
-				if (bytesRead >= 2 && bom[0] == 0xFF && bom[1] == 0xFE)
-				{
-					return Encoding.Unicode;
-				}
 			}
 
-			// Возвращаем Windows-1251
+			// 3. Если не UTF-8, возвращаем Windows-1251 по умолчанию
 			return Encoding.GetEncoding(1251);
 		}
 
+		private static bool IsValidUtf8(byte[] buffer, int length)
+		{
+			int position = 0;
+			while (position < length)
+			{
+				byte current = buffer[position];
 
-		private void SavePolygonToFile(NtsPolygon polygon, string filePath, bool isCsv, char delimiter, bool hasHeader, string sourceFileName, char decimalSeparator)
+				// ASCII (0x00-0x7F)
+				if (current <= 0x7F)
+				{
+					position++;
+					continue;
+				}
+
+				// Проверяем валидность UTF-8 последовательности
+				int followingBytes = 0;
+				if ((current & 0xE0) == 0xC0) followingBytes = 1;  // 2 байта
+				else if ((current & 0xF0) == 0xE0) followingBytes = 2; // 3 байта
+				else if ((current & 0xF8) == 0xF0) followingBytes = 3; // 4 байта
+				else return false; // Невалидный первый байт
+
+				// Проверяем наличие следующих байтов
+				if (position + followingBytes >= length)
+					break;
+
+				// Проверяем следующие байты (должны быть 10xxxxxx)
+				for (int i = 1; i <= followingBytes; i++)
+				{
+					if ((buffer[position + i] & 0xC0) != 0x80)
+						return false;
+				}
+
+				position += followingBytes + 1;
+			}
+
+			return true;
+		}
+
+
+		private void SavePolygonToFile(
+			NtsPolygon polygon,
+			string filePath,
+			char delimiter,
+			bool hasHeader,
+			char decimalSeparator)
 		{
 			var lines = new List<string>();
 
