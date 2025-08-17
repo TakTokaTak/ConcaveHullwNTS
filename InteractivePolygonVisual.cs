@@ -2,6 +2,7 @@
 using NetTopologySuite.Geometries; // Для Coordinate
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows; // Для System.Windows.Point, FrameworkElement, DependencyProperty и т.д.
 using System.Windows.Input; // Для MouseEventArgs, MouseButtonEventArgs
@@ -45,7 +46,6 @@ namespace ConcaveHullwNTS
 		/// </summary>
 		public event Action<WpfPoint, int>? SegmentRightClicked;
 
-
 		public InteractivePolygonVisual()
 		{
 			_visual = new DrawingVisual();
@@ -64,8 +64,7 @@ namespace ConcaveHullwNTS
 
 		protected override Visual GetVisualChild(int index)
 		{
-			if (index != 0)
-				throw new ArgumentOutOfRangeException(nameof(index));
+			ArgumentOutOfRangeException.ThrowIfNotEqual(index, 0);
 			return _visual;
 		}
 
@@ -90,45 +89,45 @@ namespace ConcaveHullwNTS
 		private void RenderPolygon()
 		{
 			// Используем using для корректного освобождения DrawingContext
-			using (DrawingContext dc = _visual.RenderOpen())
+			using DrawingContext dc = _visual.RenderOpen();
+			// Проверка на наличие данных и минимальное количество точек для полигона
+			if (_shellCoordinates == null || _shellCoordinates.Length < 3)
 			{
-				// Проверка на наличие данных и минимальное количество точек для полигона
-				if (_shellCoordinates == null || _shellCoordinates.Length < 3)
-				{
-					// Нечего рисовать или недостаточно точек для полигона
-					return;
-				}
+				// Нечего рисовать или недостаточно точек для полигона
+				return;
+			}
 
-				// --- Преобразуем NTS Coordinate[] в WpfPoint[] ---
-				// Предполагается, что X и Y в Coordinate уже являются координатами Canvas
-				WpfPoint[] points = new WpfPoint[_shellCoordinates.Length];
-				for (int i = 0; i < _shellCoordinates.Length; i++)
-				{
-					points[i] = new WpfPoint(_shellCoordinates[i].X, _shellCoordinates[i].Y);
-				}
+			// --- Преобразуем NTS Coordinate[] в WpfPoint[] ---
+			// Предполагается, что X и Y в Coordinate уже являются координатами Canvas
+			WpfPoint[] points = new WpfPoint[_shellCoordinates.Length];
+			for (int i = 0; i < _shellCoordinates.Length; i++)
+			{
+				points[i] = new WpfPoint(_shellCoordinates[i].X, _shellCoordinates[i].Y);
+			}
 
-				int numPoints = points.Length;
+			int numPoints = points.Length;
 
-				// Определяем перо (Pen) для выделенных и обычных сегментов
-				Pen normalPen = new Pen(NormalBrush, NormalThickness);
-				Pen highlightedPen = new Pen(HighlightedBrush, HighlightedThickness);
+			// Определяем перо (Pen) для выделенных и обычных сегментов
+			Pen normalPen = new(NormalBrush, NormalThickness);
+			Pen highlightedPen = new(HighlightedBrush, HighlightedThickness);
 
-				// Рисуем каждый сегмент
-				for (int i = 0; i < numPoints; i++)
-				{
-					WpfPoint start = points[i];
-					// Следующая точка, с учетом замкнутости полигона
-					WpfPoint end = points[(i + 1) % numPoints];
+			// Рисуем каждый сегмент
+			for (int i = 0; i < numPoints; i++)
+			{
+				WpfPoint start = points[i];
+				// Следующая точка, с учетом замкнутости полигона
+				WpfPoint end = points[(i + 1) % numPoints];
 
-					// Определяем, является ли этот сегмент выделенным
-					// Сегмент от points[i] до points[i+1] "соединен" с вершинами i и (i+1)%numPoints
-					// Выделим сегмент, если одна из его конечных вершин выделена
-					bool isHighlighted = (_highlightedVertexIndex != -1) &&
-										 (i == _highlightedVertexIndex || (i + 1) % numPoints == _highlightedVertexIndex);
+				//это количество уникальных вершин полигона, учитывая, что набор точек начинается и кончается в одной точке
+				int numRealPoints = numPoints - 1;
 
-					Pen penToUse = isHighlighted ? highlightedPen : normalPen;
-					dc.DrawLine(penToUse, start, end);
-				}
+				// Определяем, является ли этот сегмент выделенным
+				// Выделим сегмент, если одна из его конечных вершин выделена
+				bool isHighlighted = (_highlightedVertexIndex != -1) &&
+									 (i == _highlightedVertexIndex || (i + 1) % numRealPoints == _highlightedVertexIndex || (i == numRealPoints - 1 && _highlightedVertexIndex == 0));
+
+				Pen penToUse = isHighlighted ? highlightedPen : normalPen;
+				dc.DrawLine(penToUse, start, end);
 			}
 			// DrawingContext автоматически закрывается и изменения применяются
 		}
@@ -170,6 +169,7 @@ namespace ConcaveHullwNTS
 				{
 					minDistance = distance;
 					closestVertexIndex = i;
+					Debug.WriteLine($"попадание непосредственно на вершины. closestVertexIndex = {i}");
 				}
 			}
 
@@ -182,7 +182,6 @@ namespace ConcaveHullwNTS
 					WpfPoint end = points[(i + 1) % numPoints]; // Следующая точка, замыкаем полигон
 
 					// Проверяем расстояние до сегмента
-					// --- Используем alias в вызове IsPointNearSegment ---
 					if (IsPointNearSegment(mousePosition, start, end, hitTestRadius, out double distance))
 					{
 						if (distance < minDistance)
@@ -190,6 +189,7 @@ namespace ConcaveHullwNTS
 							minDistance = distance;
 							// При попадании на сегмент возвращаем индекс начальной вершины сегмента
 							closestVertexIndex = i;
+							Debug.WriteLine($"проверяем попадание на сегменты. closestVertexIndex = {i}");
 						}
 					}
 				}
@@ -214,7 +214,6 @@ namespace ConcaveHullwNTS
 		/// </returns>
 		private static bool IsPointNearSegment(WpfPoint p, WpfPoint a, WpfPoint b, double radius, out double distance)
 		{
-			distance = double.MaxValue;
 
 			// Вектор от A к B
 			System.Windows.Vector ab = b - a;

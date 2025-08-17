@@ -42,7 +42,9 @@ namespace ConcaveHullwNTS
 		private bool _hasHeader = false;
 		private char _delimiter = ';';
 		private char _decimalSeparator = ',';
+#pragma warning disable IDE0044 // Добавить модификатор только для чтения
 		private Encoding _fileEncoding = Encoding.UTF8;
+#pragma warning restore IDE0044 // Добавить модификатор только для чтения
 		private (bool hasHeader, char delimiter, char decimalSeparator, string headerX, string headerY) _loadedFileSettings;
 
 		// Параметры ConcaveHull
@@ -165,14 +167,14 @@ namespace ConcaveHullwNTS
 					_loadedFileSettings = (_hasHeader, _delimiter, _decimalSeparator, _headerX, _headerY);
 					UpdateButtonStates(); // Обновляем состояние кнопок при успехе
 					StatusUpdated?.Invoke($"Успешно загружено {_loadedCoordinates.Length} точек.");
-					InfoTextBlock.Text = InfoTextBlock.Text + $"\nЗагружено {_loadedCoordinates.Length} точек из файла '{System.IO.Path.GetFileName(_filePath)}'.";
+					InfoTextBlock.Text += $"\nЗагружено {_loadedCoordinates.Length} точек из файла '{System.IO.Path.GetFileName(_filePath)}'.";
 					PointsLoaded?.Invoke(_loadedCoordinates); // Уведомляем MainWindow о загрузке точек 
 				}
 				else
 				{
 					// обновление UI при "пустом" результате
 					StatusUpdated?.Invoke("Ошибка: Не удалось загрузить точки или файл пуст.");
-					InfoTextBlock.Text = InfoTextBlock.Text + $"\nОшибка при загрузке точек.";
+					InfoTextBlock.Text += $"\nОшибка при загрузке точек.";
 				}
 			}
 			catch (Exception ex)
@@ -456,7 +458,7 @@ namespace ConcaveHullwNTS
 				}
 
 				// Проверяем валидность UTF-8 последовательности
-				int followingBytes = 0;
+				int followingBytes;
 				if ((current & 0xE0) == 0xC0) followingBytes = 1;  // 2 байта
 				else if ((current & 0xF0) == 0xE0) followingBytes = 2; // 3 байта
 				else if ((current & 0xF8) == 0xF0) followingBytes = 3; // 4 байта
@@ -528,5 +530,28 @@ namespace ConcaveHullwNTS
 
 		#endregion
 
+		#region Public API
+
+		/// <summary>
+		/// Обновляет внутреннее состояние результата оболочки.
+		/// Используется для синхронизации с внешними изменениями геометрии (например, из VisualizationTab).
+		/// </summary>
+		/// <param name="newHullGeometry">Новая геометрия оболочки.</param>
+		public void UpdateCurrentHullResult(NtsGeometry? newHullGeometry)
+		{
+			// Обновляем внутреннее поле с результатом
+			_resultHullGeometry = newHullGeometry;
+
+			// Обновляем флаг, что оболочка "вычислена" (или скорректируйте логику по необходимости)
+			// Если новая геометрия null, возможно, стоит сбросить флаг.
+			_hullCalculated = newHullGeometry != null;
+
+			// Обновляем состояние кнопок, так как доступность "Сохранить" зависит от _hullCalculated и _resultHullGeometry
+			UpdateButtonStates();
+
+			//System.Diagnostics.Debug.WriteLine($"InputSettingsTab: Hull result updated via external modification. HullCalculated = {_hullCalculated}");
+		}
+
+		#endregion
 	}
 }

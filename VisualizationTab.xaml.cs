@@ -25,14 +25,22 @@ namespace ConcaveHullwNTS
 		private NtsGeometry? _hullGeometry;
 		private Rect _dataBounds = new(0, 0, 100, 100);
 		public event Action? SaveRequested;
+		/// <summary>
+		/// Событие, возникающее при изменении геометрии оболочки пользователем.
+		/// Передает новую геометрию оболочки.
+		/// </summary>
+		public event Action<NtsGeometry?>? HullGeometryModified;
+
 		private bool _isVisualizationDirty = true;
 		private PointsVisual? _pointsVisual;
 
+#pragma warning disable IDE0044 // Добавить модификатор только для чтения
 		// --- Поле для нового интерактивного полигона ---
 		private InteractivePolygonVisual? _polygonVisual;
 		// --- Поле для хранения контекстного меню ---
 		private ContextMenu? _segmentContextMenu;
-		// --- Поле для хранения индекса выделенной вершины ---
+#pragma warning restore IDE0044 // Добавить модификатор только для чтения
+							   // --- Поле для хранения индекса выделенной вершины ---
 		private int _highlightedVertexIndex = -1;
 
 
@@ -54,7 +62,7 @@ namespace ConcaveHullwNTS
 
 			// --- Создание и настройка ContextMenu ---
 			_segmentContextMenu = new ContextMenu();
-			MenuItem removeSegmentItem = new MenuItem { Header = "Удалить сегмент" };
+			MenuItem removeSegmentItem = new() { Header = "Удалить сегмент" };
 			removeSegmentItem.Click += RemoveSegmentMenuItem_Click;
 			_segmentContextMenu.Items.Add(removeSegmentItem);
 		}
@@ -75,7 +83,6 @@ namespace ConcaveHullwNTS
 
 		public void SetData(NtsGeometry? hullGeometry, NtsCoordinate[]? originalPoints)
 		{
-			bool pointsChanged = !ReferenceEquals(_originalPoints, originalPoints);
 			_hullGeometry = hullGeometry;
 			_originalPoints = originalPoints;
 			_isVisualizationDirty = true;
@@ -265,7 +272,6 @@ namespace ConcaveHullwNTS
 			// Сохраняем индекс выделенной вершины для последующего использования
 			_highlightedVertexIndex = vertexIndex;
 			// Здесь можно добавить логику обновления UI, если это потребуется
-			// Например, активировать кнопки редактирования, если они будут
 			// System.Diagnostics.Debug.WriteLine($"Polygon segments highlighted at vertex index: {vertexIndex}");
 		}
 
@@ -277,7 +283,7 @@ namespace ConcaveHullwNTS
 			if (_segmentContextMenu != null)
 			{
 				// WPF автоматически использует позицию мыши из MouseButtonEventArgs
-				_segmentContextMenu.Placement = PlacementMode.MousePoint;
+				_segmentContextMenu.Placement = PlacementMode.Mouse;
 				_segmentContextMenu.IsOpen = true;
 			}
 		}
@@ -290,7 +296,7 @@ namespace ConcaveHullwNTS
 		private void RemoveSegmentMenuItem_Click(object sender, RoutedEventArgs e)
 		{
 			// Проверяем, что у нас есть выделенная вершина и исходная геометрия оболочки
-			if (_highlightedVertexIndex != -1 && _hullGeometry is NtsPolygon polygon && _originalPoints != null)
+			if (_highlightedVertexIndex != -1 && _hullGeometry is NtsPolygon && _originalPoints != null)
 			{
 				//System.Diagnostics.Debug.WriteLine($"Attempting to remove vertex at index: {_highlightedVertexIndex}");
 				RemoveVertexFromHull(_highlightedVertexIndex);
@@ -341,7 +347,7 @@ namespace ConcaveHullwNTS
 			int originalLength = shellCoords.Length;
 
 			// Создаем новый список координат
-			List<NtsCoordinate> newShellCoordsList = new List<NtsCoordinate>(originalLength - 1);
+			List<NtsCoordinate> newShellCoordsList = new(originalLength - 1);
 
 			// Сценарий зависит от того, какая вершина удаляется:
 			// - Если удаляется первая (индекс 0) или последняя (индекс Length-1) точка:
@@ -384,18 +390,17 @@ namespace ConcaveHullwNTS
 
 			try
 			{
-				NtsCoordinate[] newShellCoords = newShellCoordsList.ToArray();
+				NtsCoordinate[] newShellCoords = [.. newShellCoordsList];
 				// Создаем новый внешний контур (Shell)
-				NtsLinearRing newShell = new NtsLinearRing(newShellCoords);
+				NtsLinearRing newShell = new(newShellCoords);
 				// Создаем новый полигон. Предполагаем, что дыр (Holes) нет.
-				NtsPolygon newPolygon = new NtsPolygon(newShell, null, NtsGeometryFactory.Default);
+				NtsPolygon newPolygon = new(newShell, null, NtsGeometryFactory.Default);
 
 				// 4. Обновление визуализации с новым полигоном
 				// Вызываем SetData с новым полигоном и теми же исходными точками
 				// Это приведет к повторному вызову UpdateVisualization -> DrawAllElements
 				SetData(newPolygon, _originalPoints);
-
-				//System.Diagnostics.Debug.WriteLine($"Successfully removed vertex at index {vertexIndexToRemove}. New polygon has {newShellCoords.Length - 1} unique vertices.");
+				HullGeometryModified?.Invoke(newPolygon); // Вызываем событие, передавая новую геометрию
 			}
 			catch (Exception ex)
 			{

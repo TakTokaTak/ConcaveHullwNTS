@@ -2,9 +2,11 @@
 using System.Diagnostics;
 using System.Text;
 using System.Windows;
+using NtsGeometry = NetTopologySuite.Geometries.Geometry;
 
 namespace ConcaveHullwNTS
 {
+	
 	/// <summary>
 	/// Логика взаимодействия для MainWindow.xaml
 	/// </summary>
@@ -15,17 +17,11 @@ namespace ConcaveHullwNTS
 			Debug.AutoFlush = true;
 			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); //Надо добавлять перед инициализацией
 			InitializeComponent();
-			if (InputSettingsTabInstance != null)
-			{
-				InputSettingsTabInstance.StatusUpdated += OnStatusUpdated;
-				InputSettingsTabInstance.HullCalculated += OnHullCalculated;
-				InputSettingsTabInstance.PointsLoaded += OnPointsLoaded;
-			}
-
-			if (VisualizationTabInstance != null)
-			{
-				VisualizationTabInstance.SaveRequested += OnVisualizationSaveRequested;
-			}
+			InputSettingsTabInstance!.StatusUpdated += OnStatusUpdated;
+			InputSettingsTabInstance!.HullCalculated += OnHullCalculated;
+			InputSettingsTabInstance!.PointsLoaded += OnPointsLoaded;
+			VisualizationTabInstance!.SaveRequested += OnVisualizationSaveRequested;
+			VisualizationTabInstance!.HullGeometryModified += OnVisualizationHullModified;
 		}
 
 		#region Обработчики событий от InputSettingsTab
@@ -60,7 +56,21 @@ namespace ConcaveHullwNTS
 			// мы вызываем метод сохранения из InputSettingsTab
 			InputSettingsTabInstance?.TriggerSave(); // TriggerSave() расположен в InputSettingsTab.xaml.cs
 		}
+		private void OnVisualizationHullModified(NtsGeometry? newHullGeometry)
+		{
+			var inputTab = InputSettingsTabInstance;
 
+			if (inputTab != null)
+			{
+				// --- Используем новый публичный метод ---
+				inputTab.UpdateCurrentHullResult(newHullGeometry);
+				// ---------------------------------------
+			}
+			else
+			{
+				//System.Diagnostics.Debug.WriteLine("OnVisualizationHullModified: InputSettingsTabInstance is null.");
+			}
+		}
 		#endregion
 
 		#region Логика MainWindow (если потребуется)
