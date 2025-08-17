@@ -15,8 +15,7 @@ using NtsPoint = NetTopologySuite.Geometries.Point;
 using NtsGeometryFactory = NetTopologySuite.Geometries.GeometryFactory;
 using NtsLinearRing = NetTopologySuite.Geometries.LinearRing;
 // --- Для контекстного меню ---
-using System.Windows.Controls.Primitives; // Для ContextMenu
-										  // -----------------------------
+using System.Windows.Controls.Primitives;
 
 namespace ConcaveHullwNTS
 {
@@ -35,7 +34,7 @@ namespace ConcaveHullwNTS
 		private ContextMenu? _segmentContextMenu;
 		// --- Добавлено: Поле для хранения индекса выделенной вершины ---
 		private int _highlightedVertexIndex = -1;
-		// -------------------------------------------------------------
+
 
 		public VisualizationTab()
 		{
