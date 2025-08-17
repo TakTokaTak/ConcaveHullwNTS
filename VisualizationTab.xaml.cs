@@ -28,11 +28,11 @@ namespace ConcaveHullwNTS
 		private bool _isVisualizationDirty = true;
 		private PointsVisual? _pointsVisual;
 
-		// --- Добавлено: Поле для нового интерактивного полигона ---
+		// --- Поле для нового интерактивного полигона ---
 		private InteractivePolygonVisual? _polygonVisual;
-		// --- Добавлено: Поле для хранения контекстного меню ---
+		// --- Поле для хранения контекстного меню ---
 		private ContextMenu? _segmentContextMenu;
-		// --- Добавлено: Поле для хранения индекса выделенной вершины ---
+		// --- Поле для хранения индекса выделенной вершины ---
 		private int _highlightedVertexIndex = -1;
 
 
@@ -42,7 +42,7 @@ namespace ConcaveHullwNTS
 			Loaded += OnLoaded;
 			MainCanvas.SizeChanged += OnCanvasSizeChanged;
 
-			// --- Добавлено: Инициализация InteractivePolygonVisual ---
+			// --- Инициализация InteractivePolygonVisual ---
 			_polygonVisual = new InteractivePolygonVisual();
 			// Подписываемся на его события
 			_polygonVisual.SegmentsHighlighted += OnPolygonSegmentsHighlighted;
@@ -51,14 +51,12 @@ namespace ConcaveHullwNTS
 			// Порядок добавления в Children определяет z-порядок (последний добавленный сверху)
 			// Добавим его первым, чтобы точки (PointsVisual) были сверху
 			MainCanvas.Children.Add(_polygonVisual);
-			// -----------------------------------------------------------
 
-			// --- Добавлено: Создание и настройка ContextMenu ---
+			// --- Создание и настройка ContextMenu ---
 			_segmentContextMenu = new ContextMenu();
 			MenuItem removeSegmentItem = new MenuItem { Header = "Удалить сегмент" };
 			removeSegmentItem.Click += RemoveSegmentMenuItem_Click;
 			_segmentContextMenu.Items.Add(removeSegmentItem);
-			// -----------------------------------------------------
 		}
 
 		private void OnLoaded(object sender, RoutedEventArgs e)
@@ -237,7 +235,6 @@ namespace ConcaveHullwNTS
 			if (canvasWidth <= 0) canvasWidth = 100;
 			if (canvasHeight <= 0) canvasHeight = 100;
 
-			// --- Исправлена потенциальная ошибка деления на ноль ---
 			// Если _dataBounds.Width или Height равны 0, масштабирование невозможно.
 			// Логика защиты от одинаковых точек в CalculateDataBounds должна это предотвратить,
 			// но добавим дополнительную проверку на всякий случай.
@@ -246,21 +243,13 @@ namespace ConcaveHullwNTS
 				//System.Diagnostics.Debug.WriteLine("WARNING: _dataBounds has zero width or height!");
 				return new System.Windows.Point(canvasWidth / 2, canvasHeight / 2); // Центр Canvas
 			}
-			// --------------------------------------------------------
+
 
 			double x_ratio = (worldPoint.X - _dataBounds.Left) / _dataBounds.Width;
 			double y_ratio = (worldPoint.Y - _dataBounds.Top) / _dataBounds.Height;
 
 			double x = x_ratio * canvasWidth;
 			double y = canvasHeight - (y_ratio * canvasHeight); // Инверсия Y
-
-			// --- Убрано: Логирование предупреждений о выходе за границы ---
-			// Это может происходить при нормальном масштабировании и не является ошибкой.
-			// if (x < 0 || x > canvasWidth || y < 0 || y > canvasHeight)
-			// {
-			// 	System.Diagnostics.Debug.WriteLine($"WARNING: Point ({worldPoint.X}, {worldPoint.Y}) maps to ({x}, {y}) outside canvas {canvasWidth}x{canvasHeight}");
-			// }
-			// ---------------------------------------------------------------
 
 			//System.Diagnostics.Debug.WriteLine($"Mapped ({worldPoint.X}, {worldPoint.Y}) -> ({x}, {y})");
 			return new System.Windows.Point(x, y);
@@ -271,7 +260,6 @@ namespace ConcaveHullwNTS
 			SaveRequested?.Invoke();
 		}
 
-		// --- Добавлено: Обработчики событий от InteractivePolygonVisual ---
 		private void OnPolygonSegmentsHighlighted(int vertexIndex)
 		{
 			// Сохраняем индекс выделенной вершины для последующего использования
@@ -294,7 +282,11 @@ namespace ConcaveHullwNTS
 			}
 		}
 
-		// --- Добавлено: Обработчик клика по пункту меню "Удалить сегмент" ---
+		/// <summary>
+		/// Обработчик клика по пункту меню "Удалить сегмент" ---
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
 		private void RemoveSegmentMenuItem_Click(object sender, RoutedEventArgs e)
 		{
 			// Проверяем, что у нас есть выделенная вершина и исходная геометрия оболочки
@@ -312,9 +304,7 @@ namespace ConcaveHullwNTS
 			// Сбрасываем индекс после попытки удаления
 			_highlightedVertexIndex = -1;
 		}
-		// -------------------------------------------------------------------
 
-		// --- Добавлено: Логика удаления вершины из полигона ---
 		/// <summary>
 		/// Удаляет вершину из полигона оболочки и обновляет визуализацию.
 		/// </summary>
@@ -362,12 +352,6 @@ namespace ConcaveHullwNTS
 
 			if (vertexIndexToRemove == 0 || vertexIndexToRemove == originalLength - 1)
 			{
-				// Удаляем одну из точек (например, первую), копируем остальные, исключая последнюю
-				// и добавляем новую "первую" точку (которая была второй в оригинале) в конец как замыкающую.
-				// Но проще: копируем с индекса 1 до Length-2 (все, кроме первой и последней, которые совпадают)
-				// и добавляем точку с индексом 1 как новую первую и последнюю.
-				// Еще проще: копируем с 1 по Length-2, затем добавляем точку[1] в конец.
-				// Или: копируем с 1 по Length-1 (исключая 0), и заменяем последнюю точку на точку[1].
 				// Самый простой и понятный способ:
 				// 1. Добавить все точки от 1 до Length-2 (исключая 0 и Length-1)
 				for (int i = 1; i < originalLength - 1; i++) // i = 1 to N-2
@@ -393,7 +377,7 @@ namespace ConcaveHullwNTS
 			// 3. Создание нового полигона на основе новых координат
 			if (newShellCoordsList.Count < 3)
 			{
-				//System.Diagnostics.Debug.WriteLine("RemoveVertexFromHull: After removal, less than 3 vertices remain.");
+				//System.Diagnostics.Debug.WriteLine("RemoveVertexFromHull: После удаления останется менее 3 вершин. Операция отменена.");
 				MessageBox.Show("После удаления останется менее 3 вершин. Операция отменена.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
 				return;
 			}
@@ -419,6 +403,5 @@ namespace ConcaveHullwNTS
 				MessageBox.Show($"Ошибка при удалении вершины: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 		}
-		// ---------------------------------------------------------
 	}
 }

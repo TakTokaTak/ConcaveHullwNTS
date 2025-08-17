@@ -33,7 +33,6 @@ namespace ConcaveHullwNTS
 		// -1 означает, что ничего не выделено
 		private int _highlightedVertexIndex = -1;
 
-		// --- События ---
 		/// <summary>
 		/// Событие, возникающее при выделении сегментов, соединяющихся в вершине.
 		/// Передает индекс выделенной вершины.
@@ -44,11 +43,9 @@ namespace ConcaveHullwNTS
 		/// Событие, возникающее при клике правой кнопкой мыши на сегменте или вершине.
 		/// Передает позицию клика (в координатах Canvas) и индекс ближайшей вершины.
 		/// </summary>
-		// --- Используем alias в объявлении события ---
 		public event Action<WpfPoint, int>? SegmentRightClicked;
-		// ---------------------------------------------
 
-		// --- Конструктор ---
+
 		public InteractivePolygonVisual()
 		{
 			_visual = new DrawingVisual();
@@ -72,9 +69,8 @@ namespace ConcaveHullwNTS
 			return _visual;
 		}
 
-		// --- Основной метод для установки данных ---
 		/// <summary>
-		/// Устанавливает данные полигона для отрисовки.
+		/// Основной метод для установки данных. Устанавливает данные полигона для отрисовки.
 		/// Ожидается, что координаты уже преобразованы в координаты Canvas.
 		/// </summary>
 		/// <param name="shellCoordinates">
@@ -88,9 +84,8 @@ namespace ConcaveHullwNTS
 			RenderPolygon(); // Перерисовываем
 		}
 
-		// --- Метод отрисовки ---
 		/// <summary>
-		/// Выполняет фактическую отрисовку полигона на DrawingVisual.
+		///  --- Метод отрисовки --- Выполняет фактическую отрисовку полигона на DrawingVisual.
 		/// </summary>
 		private void RenderPolygon()
 		{
@@ -111,7 +106,6 @@ namespace ConcaveHullwNTS
 				{
 					points[i] = new WpfPoint(_shellCoordinates[i].X, _shellCoordinates[i].Y);
 				}
-				// --------------------------------------------------
 
 				int numPoints = points.Length;
 
@@ -139,14 +133,12 @@ namespace ConcaveHullwNTS
 			// DrawingContext автоматически закрывается и изменения применяются
 		}
 
-		// --- Логика проверки попадания ---
 		/// <summary>
-		/// Выполняет проверку попадания курсора мыши на сегмент или вершину.
+		/// Логика проверки попадания. Выполняет проверку попадания курсора мыши на сегмент или вершину.
 		/// </summary>
 		/// <param name="mousePosition">Позиция курсора мыши в координатах Canvas.</param>
 		/// <returns>Индекс ближайшей вершины, если попадание обнаружено; иначе -1.</returns>
 		private int HitTestSegments(WpfPoint mousePosition)
-		// --------------------------------------------
 		{
 			if (_shellCoordinates == null || _shellCoordinates.Length < 3)
 			{
@@ -159,7 +151,6 @@ namespace ConcaveHullwNTS
 			{
 				points[i] = new WpfPoint(_shellCoordinates[i].X, _shellCoordinates[i].Y);
 			}
-			// --------------------------------------------------
 
 			int numPoints = points.Length;
 			const double hitTestRadius = 5.0; // Радиус для проверки попадания
@@ -193,7 +184,6 @@ namespace ConcaveHullwNTS
 					// Проверяем расстояние до сегмента
 					// --- Используем alias в вызове IsPointNearSegment ---
 					if (IsPointNearSegment(mousePosition, start, end, hitTestRadius, out double distance))
-					// ---------------------------------------------------
 					{
 						if (distance < minDistance)
 						{
@@ -223,16 +213,13 @@ namespace ConcaveHullwNTS
 		/// True, если точка находится в пределах радиуса от отрезка; иначе false.
 		/// </returns>
 		private static bool IsPointNearSegment(WpfPoint p, WpfPoint a, WpfPoint b, double radius, out double distance)
-		// --------------------------------------------
 		{
 			distance = double.MaxValue;
 
 			// Вектор от A к B
-			// --- Используем alias для Vector ---
 			System.Windows.Vector ab = b - a;
 			// Вектор от A к P
 			System.Windows.Vector ap = p - a;
-			// -----------------------------------
 
 			// Длина вектора AB в квадрате
 			double abLengthSquared = ab.X * ab.X + ab.Y * ab.Y;
@@ -262,24 +249,18 @@ namespace ConcaveHullwNTS
 			else
 			{
 				// Ближайшая точка лежит на отрезке AB
-				// closestPoint = A + t * AB
-				// --- Используем alias для Vector ---
 				closestPoint = a + t * ab;
-				// -----------------------------------
 			}
 
 			// Расстояние от P до ближайшей точки на отрезке
-			// --- Используем alias для Vector ---
 			System.Windows.Vector diff = p - closestPoint;
 			distance = Math.Sqrt(diff.X * diff.X + diff.Y * diff.Y);
-			// ------------------------------------
 
 			return distance <= radius;
 		}
 
-		// --- Логика выделения ---
 		/// <summary>
-		/// Выделяет сегменты, соединяющиеся в указанной вершине.
+		/// --- Логика выделения --- Выделяет сегменты, соединяющиеся в указанной вершине.
 		/// </summary>
 		/// <param name="vertexIndex">Индекс вершины для выделения.</param>
 		public void HighlightSegments(int vertexIndex)
@@ -312,10 +293,8 @@ namespace ConcaveHullwNTS
 		}
 
 		// --- Обработчики событий мыши ---
-		// --- Используем alias в сигнатуре обработчиков ---
 		private void OnMouseMove(object sender, MouseEventArgs e)
 		{
-			// --- Используем alias для Point ---
 			WpfPoint mousePosition = e.GetPosition(this); // Получаем позицию в координатах этого элемента (Canvas)
 			int hitIndex = HitTestSegments(mousePosition);
 
@@ -334,15 +313,12 @@ namespace ConcaveHullwNTS
 
 		private void OnMouseRightButtonDown(object sender, MouseButtonEventArgs e)
 		{
-			// --- Используем alias для Point ---
 			WpfPoint mousePosition = e.GetPosition(this); // Получаем позицию в координатах этого элемента
 			int hitIndex = HitTestSegments(mousePosition);
 
 			if (hitIndex != -1)
 			{
 				// Вызываем событие, передавая позицию клика и индекс вершины
-				// --- Используем alias в вызове события ---
-				//SegmentRightClicked?.Invoke(mousePosition, hitIndex);
 				SegmentRightClicked?.Invoke(e.GetPosition(this), hitIndex);
 				// Помечаем событие как обработанное, чтобы оно не всплывало дальше
 				e.Handled = true;
