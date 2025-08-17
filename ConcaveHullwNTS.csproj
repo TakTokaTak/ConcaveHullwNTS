@@ -11,6 +11,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Publish\**" />
+    <EmbeddedResource Remove="Publish\**" />
+    <None Remove="Publish\**" />
+    <Page Remove="Publish\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
 	<PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.8" />
   </ItemGroup>
