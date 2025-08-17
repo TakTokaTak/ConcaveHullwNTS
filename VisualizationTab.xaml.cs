@@ -62,7 +62,7 @@ namespace ConcaveHullwNTS
 
 			// --- Создание и настройка ContextMenu ---
 			_segmentContextMenu = new ContextMenu();
-			MenuItem removeSegmentItem = new() { Header = "Удалить сегмент" };
+			MenuItem removeSegmentItem = new() { Header = "Удалить угол" };
 			removeSegmentItem.Click += RemoveSegmentMenuItem_Click;
 			_segmentContextMenu.Items.Add(removeSegmentItem);
 		}
@@ -289,7 +289,7 @@ namespace ConcaveHullwNTS
 		}
 
 		/// <summary>
-		/// Обработчик клика по пункту меню "Удалить сегмент" ---
+		/// Обработчик клика по пункту меню "Удалить угол" ---
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
@@ -304,7 +304,7 @@ namespace ConcaveHullwNTS
 			else
 			{
 				//System.Diagnostics.Debug.WriteLine("Cannot remove segment: No vertex highlighted or no hull geometry.");
-				MessageBox.Show("Невозможно удалить сегмент: нет выделенной вершины или данных оболочки.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+				MessageBox.Show("Невозможно удалить угол: нет выделенной вершины или данных оболочки.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
 			}
 
 			// Сбрасываем индекс после попытки удаления

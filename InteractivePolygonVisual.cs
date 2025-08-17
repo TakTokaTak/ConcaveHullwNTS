@@ -15,13 +15,13 @@ namespace ConcaveHullwNTS
 {
 	/// <summary>
 	/// Визуальный элемент для отрисовки и интерактивности полигона оболочки.
-	/// Использует DrawingVisual для эффективной отрисовки и позволяет выделять сегменты.
+	/// Использует DrawingVisual для эффективной отрисовки и позволяет выделять углы.
 	/// Предполагается, что координаты уже преобразованы в координаты Canvas (экрана).
 	/// </summary>
 	public class InteractivePolygonVisual : FrameworkElement
 	{
 		// --- Поля для отрисовки ---
-		// Кисти и перья для отрисовки сегментов
+		// Кисти и перья для отрисовки углов
 		private static readonly Brush NormalBrush = Brushes.Red;
 		private static readonly Brush HighlightedBrush = Brushes.Crimson;
 		private static readonly double NormalThickness = 2.0;
@@ -30,18 +30,18 @@ namespace ConcaveHullwNTS
 		private readonly DrawingVisual _visual;
 		private Coordinate[]? _shellCoordinates; // Координаты из NTS, уже преобразованные в Canvas
 
-		// Индекс вершины, сегменты которой (предыдущий и следующий) выделены
+		// Индекс вершины, углы которой (предыдущий и следующий) выделены
 		// -1 означает, что ничего не выделено
 		private int _highlightedVertexIndex = -1;
 
 		/// <summary>
-		/// Событие, возникающее при выделении сегментов, соединяющихся в вершине.
+		/// Событие, возникающее при выделении углов, соединяющихся в вершине.
 		/// Передает индекс выделенной вершины.
 		/// </summary>
 		public event Action<int>? SegmentsHighlighted;
 
 		/// <summary>
-		/// Событие, возникающее при клике правой кнопкой мыши на сегменте или вершине.
+		/// Событие, возникающее при клике правой кнопкой мыши на угле или вершине.
 		/// Передает позицию клика (в координатах Canvas) и индекс ближайшей вершины.
 		/// </summary>
 		public event Action<WpfPoint, int>? SegmentRightClicked;
@@ -107,11 +107,11 @@ namespace ConcaveHullwNTS
 
 			int numPoints = points.Length;
 
-			// Определяем перо (Pen) для выделенных и обычных сегментов
+			// Определяем перо (Pen) для выделенных и обычных углов
 			Pen normalPen = new(NormalBrush, NormalThickness);
 			Pen highlightedPen = new(HighlightedBrush, HighlightedThickness);
 
-			// Рисуем каждый сегмент
+			// Рисуем каждый угол
 			for (int i = 0; i < numPoints; i++)
 			{
 				WpfPoint start = points[i];
@@ -121,10 +121,10 @@ namespace ConcaveHullwNTS
 				//это количество уникальных вершин полигона, учитывая, что набор точек начинается и кончается в одной точке
 				int numRealPoints = numPoints - 1;
 
-				// Определяем, является ли этот сегмент выделенным
-				// Выделим сегмент, если одна из его конечных вершин выделена
+				// Определяем, является ли этот угол выделенным
+				// Выделим угол, если одна из его конечных вершин выделена
 				bool isHighlighted = (_highlightedVertexIndex != -1) &&
-									 (i == _highlightedVertexIndex || (i + 1) % numRealPoints == _highlightedVertexIndex || (i == numRealPoints - 1 && _highlightedVertexIndex == 0));
+									 (i == _highlightedVertexIndex || (i + 1) % numRealPoints == _highlightedVertexIndex);
 
 				Pen penToUse = isHighlighted ? highlightedPen : normalPen;
 				dc.DrawLine(penToUse, start, end);
@@ -133,7 +133,7 @@ namespace ConcaveHullwNTS
 		}
 
 		/// <summary>
-		/// Логика проверки попадания. Выполняет проверку попадания курсора мыши на сегмент или вершину.
+		/// Логика проверки попадания. Выполняет проверку попадания курсора мыши на угол или вершину.
 		/// </summary>
 		/// <param name="mousePosition">Позиция курсора мыши в координатах Canvas.</param>
 		/// <returns>Индекс ближайшей вершины, если попадание обнаружено; иначе -1.</returns>
@@ -169,11 +169,13 @@ namespace ConcaveHullwNTS
 				{
 					minDistance = distance;
 					closestVertexIndex = i;
+#if DEBUG
 					Debug.WriteLine($"попадание непосредственно на вершины. closestVertexIndex = {i}");
+#endif
 				}
 			}
 
-			// Если не попали точно в вершину, проверяем попадание на сегменты
+			// Если не попали точно в вершину, проверяем попадание на углы
 			if (closestVertexIndex == -1)
 			{
 				for (int i = 0; i < numPoints; i++)
@@ -181,15 +183,17 @@ namespace ConcaveHullwNTS
 					WpfPoint start = points[i];
 					WpfPoint end = points[(i + 1) % numPoints]; // Следующая точка, замыкаем полигон
 
-					// Проверяем расстояние до сегмента
+					// Проверяем расстояние до угла
 					if (IsPointNearSegment(mousePosition, start, end, hitTestRadius, out double distance))
 					{
 						if (distance < minDistance)
 						{
 							minDistance = distance;
-							// При попадании на сегмент возвращаем индекс начальной вершины сегмента
+							// При попадании на угол возвращаем индекс начальной вершины угла
 							closestVertexIndex = i;
-							Debug.WriteLine($"проверяем попадание на сегменты. closestVertexIndex = {i}");
+#if DEBUG
+							Debug.WriteLine($"проверяем попадание на углы. closestVertexIndex = {i}");
+#endif
 						}
 					}
 				}
@@ -259,7 +263,7 @@ namespace ConcaveHullwNTS
 		}
 
 		/// <summary>
-		/// --- Логика выделения --- Выделяет сегменты, соединяющиеся в указанной вершине.
+		/// --- Логика выделения --- Выделяет углы, соединяющиеся в указанной вершине.
 		/// </summary>
 		/// <param name="vertexIndex">Индекс вершины для выделения.</param>
 		public void HighlightSegments(int vertexIndex)
@@ -279,7 +283,7 @@ namespace ConcaveHullwNTS
 		}
 
 		/// <summary>
-		/// Убирает выделение со всех сегментов.
+		/// Убирает выделение со всех углов.
 		/// </summary>
 		public void ClearHighlight()
 		{
@@ -303,7 +307,7 @@ namespace ConcaveHullwNTS
 			}
 			else
 			{
-				// Если мышь не над сегментом/вершиной, сбрасываем выделение
+				// Если мышь не над уголом/вершиной, сбрасываем выделение
 				// Это может вызывать "мерцание", если HitTest нестабилен.
 				// В более сложной реализации можно добавить гистерезис или таймер.
 				ClearHighlight();
