@@ -342,7 +342,8 @@ namespace ConcaveHullwNTS
 			{
 				// Вызываем событие, передавая позицию клика и индекс вершины
 				// --- Используем alias в вызове события ---
-				SegmentRightClicked?.Invoke(mousePosition, hitIndex);
+				//SegmentRightClicked?.Invoke(mousePosition, hitIndex);
+				SegmentRightClicked?.Invoke(e.GetPosition(this), hitIndex);
 				// Помечаем событие как обработанное, чтобы оно не всплывало дальше
 				e.Handled = true;
 			}

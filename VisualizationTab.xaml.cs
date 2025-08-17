@@ -284,24 +284,16 @@ namespace ConcaveHullwNTS
 
 		private void OnPolygonSegmentRightClicked(System.Windows.Point position, int vertexIndex)
 		{
-			// Сохраняем индекс вершины, над которой был клик
 			_highlightedVertexIndex = vertexIndex;
-
-			// Отображаем контекстное меню, если оно создано
+			// Убедитесь, что _segmentContextMenu не назначен как ContextMenu какому-либо элементу в XAML
+			// и не открывается другим способом одновременно.
 			if (_segmentContextMenu != null)
 			{
-				// Устанавливаем позицию контекстного меню относительно MainCanvas
-				_segmentContextMenu.Placement = PlacementMode.AbsolutePoint;
-				_segmentContextMenu.PlacementTarget = MainCanvas; // Или this?
-				_segmentContextMenu.HorizontalOffset = position.X;
-				_segmentContextMenu.VerticalOffset = position.Y;
-
-				// Открываем меню
+				// WPF автоматически использует позицию мыши из MouseButtonEventArgs
+				_segmentContextMenu.Placement = PlacementMode.MousePoint;
 				_segmentContextMenu.IsOpen = true;
-				//System.Diagnostics.Debug.WriteLine($"Context menu opened at ({position.X}, {position.Y}) for vertex index: {vertexIndex}");
 			}
 		}
-		// -------------------------------------------------------------------
 
 		// --- Добавлено: Обработчик клика по пункту меню "Удалить сегмент" ---
 		private void RemoveSegmentMenuItem_Click(object sender, RoutedEventArgs e)
